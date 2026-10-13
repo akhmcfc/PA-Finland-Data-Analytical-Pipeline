@@ -1,0 +1,38 @@
+import sqlite3, datetime as dt, os, sys, tempfile
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import send_surveys as S
+p = tempfile.mktemp(suffix=".db"); S.DB = p
+c = sqlite3.connect(p); c.row_factory = sqlite3.Row
+for yr in (2026, 2027):
+    c.execute(f"CREATE TABLE candidate_mapping_{yr}(candidate_id TEXT,email TEXT,first_name TEXT,survey_2_send_start TEXT,survey_2_send_end TEXT,survey_3_send_start TEXT,survey_3_send_end TEXT,survey_2_sent_date TEXT,survey_3_sent_date TEXT)")
+    c.execute(f"CREATE TABLE mid_bootcamp_{yr}(candidate_id TEXT PRIMARY KEY)")
+    c.execute(f"CREATE TABLE post_bootcamp_{yr}(candidate_id TEXT PRIMARY KEY)")
+c.execute("INSERT INTO candidate_mapping_2026 VALUES('A','a@x.fi','Ann','2026-10-01','2027-01-31','2027-03-01','2027-08-31',NULL,NULL)")
+c.execute("INSERT INTO candidate_mapping_2026 VALUES('B','b@x.fi','Bo','2026-10-01','2027-01-31','2027-03-01','2027-08-31',NULL,NULL)")
+c.execute("INSERT INTO candidate_mapping_2026 VALUES('C','','Cy','2026-10-01','2027-01-31','2027-03-01','2027-08-31',NULL,NULL)")
+c.execute("INSERT INTO candidate_mapping_2027 VALUES('D','d@x.fi','Di','2027-10-01','2028-01-31','2028-03-01','2028-08-31',NULL,NULL)")
+c.commit(); S.init(c)
+outbox = []; S.SENDER = lambda m: outbox.append(m)
+T = dt.date(2026, 10, 13)
+def chk(name, ok): print(("PASS " if ok else "FAIL ") + name); assert ok
+chk("no link -> nothing sent", S.run(c, True, 60, T) == 0)
+c.execute("INSERT INTO survey_send_forms VALUES(2,'https://f.typeform.com/to/X')"); c.commit()
+chk("dry run sends nothing", S.run(c, False, 60, T) == 0 and not outbox)
+chk("first send: A,B only (no email C, 2027 closed)", S.run(c, True, 60, T) == 2 and len(outbox) == 2)
+chk("link has candidate id", "candidate_id=A" in outbox[0].get_content())
+chk("sent_date stored", c.execute("select survey_2_sent_date from candidate_mapping_2026 where candidate_id='A'").fetchone()[0] == "2026-10-13")
+chk("no double send same day", S.run(c, True, 60, T) == 0)
+c.execute("INSERT INTO mid_bootcamp_2026(candidate_id) VALUES('A')"); c.commit()
+T2 = T + dt.timedelta(days=7)
+chk("reminder only to non-replier B", S.run(c, True, 60, T2) == 1 and outbox[-1]["Subject"].startswith("Reminder"))
+chk("max reminders respected", (S.run(c, True, 60, T2 + dt.timedelta(days=7)), S.run(c, True, 60, T2 + dt.timedelta(days=14)))[1] == 0)
+c.execute("INSERT INTO survey_send_optout VALUES('D')"); c.commit()
+chk("opted-out student skipped", S.run(c, True, 60, dt.date(2027, 10, 5)) == 0)
+c.execute("DELETE FROM survey_send_optout"); c.commit()
+chk("2027 cohort picked up automatically", S.run(c, True, 60, dt.date(2027, 10, 5)) == 1)
+c.execute("INSERT OR REPLACE INTO survey_send_state VALUES('paused','1')"); c.commit()
+chk("pause works", S.run(c, True, 60, dt.date(2027, 10, 20)) == 0)
+c.execute("UPDATE survey_send_state SET v='0'"); c.execute("INSERT OR REPLACE INTO survey_send_forms VALUES(3,'https://f.typeform.com/to/Y')"); c.commit()
+chk("survey 3 window emails 2026 cohort", S.run(c, True, 60, dt.date(2027, 3, 5)) >= 1)
+chk("max limit", S.run(c, True, 1, dt.date(2027, 3, 20)) <= 1)
+print("ALL PASS")

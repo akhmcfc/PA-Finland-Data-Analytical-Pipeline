@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Project Access Finland - Bootcamp Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"><\/script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"><\/script>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #0f172a;
+            --accent: #2563eb;
+            --light: #f1f5f9;
+            --border: #e2e8f0;
+            box-sizing: border-box;
+            padding-top: env(safe-area-inset-top, 0px);
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+
+        * { box-sizing: inherit; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: linear-gradient(135deg, #f1f5f9 0%, #e0e7ff 100%);
+            color: var(--secondary);
+            margin: 0;
+            padding: 0;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            color: white;
+            padding: 2rem 1rem;
+            text-align: center;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            top: 0;
+            z-index: 100;
+        }
+
+        header h1 {
+            margin: 0 0 0.5rem 0;
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        header p {
+            margin: 0;
+            opacity: 0.95;
+            font-size: 0.95rem;
+        }
+
+        .container { max-width: 1200px; }
+
+        .year-selector {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin: 2rem auto;
+            max-width: 1200px;
+        }
+
+        .year-selector h3 {
+            margin-bottom: 1rem;
+            color: var(--primary);
+            font-size: 1.1rem;
+        }
+
+        .year-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .year-controls select, .year-controls button {
+            padding: 0.6rem 1rem;
+            border: 2px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .year-controls select {
+            background: white;
+            color: var(--secondary);
+        }
+
+        .year-controls select:hover, .year-controls select:focus {
+            border-color: var(--accent);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .year-controls button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            font-weight: 600;
+        }
+
+        .year-controls button:hover {
+            background: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+        }
+
+        .section-title {
+            color: white;
+            margin-top: 2.5rem;
+            padding: 1rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            border-radius: 8px;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1.5rem 0;
+        }
+
+        .metric {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--accent);
+        }
+
+        .metric-label {
+            color: #64748b;
+            font-size: 0.85rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            color: var(--primary);
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .metric-note {
+            color: #94a3b8;
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .chart-container h3 {
+            color: var(--primary);
+            margin: 0 0 1rem 0;
+            font-size: 1.1rem;
+        }
+
+        .chart-container canvas {
+            max-height: 400px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--accent);
+            font-size: 1.1rem;
+        }
+
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #dc2626;
+        }
+
+        .tab-buttons {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 0.7rem 1.5rem;
+            border: 2px solid var(--border);
+            background: white;
+            color: var(--secondary);
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        @media (max-width: 768px) {
+            header h1 { font-size: 1.4rem; }
+            .charts-grid { grid-template-columns: 1fr; }
+            .year-controls { flex-direction: column; align-items: stretch; }
+            .year-controls select, .year-controls button { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <header>
+        <h1>?? Project Access Finland</h1>
+        <p>Bootcamp Analytics Dashboard</p>
+    </header>
+
+    <div class="container">
+        <!-- Year Selector -->
+        <div class="year-selector">
+            <h3>?? Select Time Period</h3>
+            <div class="year-controls">
+                <select v-model="viewMode" @change="loadData">
+                    <option value="single">Single Year</option>
+                    <option value="range">Year Range</option>
+                </select>
+
+                <select v-if="viewMode === 'single'" v-model="selectedYear" @change="loadData">
+                    <option value="2023">2023 (Historical)</option>
+                    <option value="2024">2024 (Historical)</option>
+                    <option value="2025">2025 (Historical)</option>
+                    <option value="2026">2026 (Live)</option>
+                </select>
+
+                <template v-if="viewMode === 'range'">
+                    <select v-model="rangeStart" @change="loadData">
+                        <option value="2023">Start: 2023</option>
+                        <option value="2024">Start: 2024</option>
+                        <option value="2025">Start: 2025</option>
+                        <option value="2026">Start: 2026</option>
+                    </select>
+                    <select v-model="rangeEnd" @change="loadData">
+                        <option value="2023">End: 2023</option>
+                        <option value="2024">End: 2024</option>
+                        <option value="2025">End: 2025</option>
+                        <option value="2026">End: 2026</option>
+                    </select>
+                </template>
+
+                <button @click="resetFilters">?? Reset</button>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div v-if="loading" class="loading">? Loading dashboard data...</div>
+
+        <!-- Error State -->
+        <div v-if="error" class="error">? {{ error }}</div>
+
+        <!-- Dashboard Content -->
+        <template v-if="!loading && !error && data">
+            <!-- Metrics Section -->
+            <div class="metrics">
+                <div class="metric">
+                    <div class="metric-label">Total Applicants</div>
+                    <div class="metric-value">{{ data.applicants_count }}</div>
+                    <div class="metric-note">from Finland</div>
+                </div>
+                <div class="metric">
+                    <div class="metric-label">Bootcampers Selected</div>
+                    <div class="metric-value">{{ data.bootcampers_count }}</div>
+                    <div class="metric-note">Helsinki bootcamp</div>
+                </div>
+                <div v-if="data.acceptance_rate" class="metric">
+                    <div class="metric-label">Acceptance Rate</div>
+                    <div class="metric-value">{{ data.acceptance_rate }}</div>
+                    <div class="metric-note">{{ data.acceptance_rate_note }}</div>
+                </div>
+            </div>
+
+            <!-- Historical vs Live Section Title -->
+            <div v-if="isHistorical" class="section-title">?? Historical Data (2023-2025)</div>
+            <div v-else class="section-title">?? Live Tracking (2026+)</div>
+
+            <!-- Charts Grid -->
+            <div class="charts-grid">
+                <!-- High Schools (ALL APPLICANTS) -->
+                <div class="chart-container">
+                    <h3>?? Top Finnish High Schools</h3>
+                    <p style="font-size: 0.85rem; color: #64748b;">All {{ data.applicants_count }} applicants</p>
+                    <canvas :id="schoolsChart"><\/canvas>
+                </div>
+
+                <!-- Cities (ALL APPLICANTS) -->
+                <div class="chart-container">
+                    <h3>??? Geographic Distribution (Finland)</h3>
+                    <p style="font-size: 0.85rem; color: #64748b;">All {{ data.applicants_count }} applicants</p>
+                    <canvas :id="citiesChart"><\/canvas>
+                </div>
+
+                <!-- Dream Universities (BOOTCAMPERS ONLY) -->
+                <div class="chart-container">
+                    <h3>??? Dream Universities</h3>
+                    <p style="font-size: 0.85rem; color: #64748b;">{{ data.bootcampers_count }} bootcampers</p>
+                    <canvas :id="universitiesChart"><\/canvas>
+                </div>
+
+                <!-- Fields (BOOTCAMPERS ONLY) -->
+                <div class="chart-container">
+                    <h3>?? Intended Fields of Study</h3>
+                    <p style="font-size: 0.85rem; color: #64748b;">{{ data.bootcampers_count }} bootcampers</p>
+                    <canvas :id="ieldsChart"><\/canvas>
+                </div>
+
+                <!-- Destinations (BOOTCAMPERS ONLY) -->
+                <div class="chart-container">
+                    <h3>?? Target Study Destinations</h3>
+                    <p style="font-size: 0.85rem; color: #64748b;">{{ data.bootcampers_count }} bootcampers</p>
+                    <canvas :id="destinationsChart"><\/canvas>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<script>
+const { createApp, ref, computed, onMounted } = Vue;
+
+createApp({
+    setup() {
+        const viewMode = ref('single');
+        const selectedYear = ref('2026');
+        const rangeStart = ref('2023');
+        const rangeEnd = ref('2026');
+        const loading = ref(true);
+        const error = ref(null);
+        const data = ref(null);
+
+        const chartInstances = {
+            schools: null,
+            cities: null,
+            universities: null,
+            fields: null,
+            destinations: null
+        };
+
+        const isHistorical = computed(() => {
+            if (viewMode.value === 'single') {
+                return parseInt(selectedYear.value) < 2026;
+            } else {
+                return parseInt(rangeEnd.value) < 2026;
+            }
+        });
+
+        const loadData = async () => {
+            try {
+                loading.value = true;
+                error.value = null;
+
+                let url;
+                if (viewMode.value === 'single') {
+                    url = https://YOUR-API-HOST/api/multi-year/year//dashboard;
+                } else {
+                    url = https://YOUR-API-HOST/api/multi-year/range/dashboard?start_year=&end_year=;
+                }
+
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Failed to fetch data');
+
+                data.value = await response.json();
+
+                setTimeout(() => {
+                    createCharts();
+                }, 300);
+
+            } catch (err) {
+                error.value = 'Error loading dashboard. Check network connection and API status.';
+                console.error(err);
+            } finally {
+                loading.value = false;
+            }
+        };
+
+        const destroyCharts = () => {
+            Object.values(chartInstances).forEach(chart => {
+                if (chart) chart.destroy();
+            });
+        };
+
+        const createCharts = () => {
+            destroyCharts();
+
+            if (!data.value) return;
+
+            // High Schools Chart
+            const schoolsCanvas = document.getElementById("schoolsChart");
+            if (schoolsCanvas && data.value.high_schools && data.value.high_schools.length > 0) {
+                const schools = data.value.high_schools.slice(0, 12);
+                const labels = schools.map(s => s.school);
+                const values = schools.map(s => s.count);
+
+                chartInstances.schools = new Chart(schoolsCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Applicants',
+                            data: values,
+                            backgroundColor: '#2563eb',
+                            borderRadius: 6,
+                            borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Cities Chart
+            const citiesCanvas = document.getElementById("citiesChart");
+            if (citiesCanvas && data.value.cities && data.value.cities.length > 0) {
+                const cities = data.value.cities.slice(0, 10);
+                const labels = cities.map(c => c.city);
+                const values = cities.map(c => c.count);
+
+                chartInstances.cities = new Chart(citiesCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: ['#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#dbeafe', '#1e40af', '#0c4a6e', '#082f49', '#0f172a', '#1e3a8a']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // Dream Universities Chart
+            const universitiesCanvas = document.getElementById("universitiesChart");
+            if (universitiesCanvas && data.value.dream_universities && data.value.dream_universities.length > 0) {
+                const unis = data.value.dream_universities.slice(0, 15);
+                const labels = unis.map(u => u.university);
+                const values = unis.map(u => u.count);
+
+                chartInstances.universities = new Chart(universitiesCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Mentions',
+                            data: values,
+                            backgroundColor: '#059669',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+
+            // Fields Chart
+            const fieldsCanvas = document.getElementById("fieldsChart");
+            if (fieldsCanvas && data.value.field_distribution && data.value.field_distribution.length > 0) {
+                const fields = data.value.field_distribution;
+                const labels = fields.map(f => f.field);
+                const values = fields.map(f => f.count);
+
+                chartInstances.fields = new Chart(fieldsCanvas, {
+                    type: 'doughnut',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            data: values,
+                            backgroundColor: ['#7c3aed', '#a855f7', '#d8b4fe', '#e9d5ff', '#f3e8ff', '#faf5ff']
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // Destinations Chart
+            const destinationsCanvas = document.getElementById("destinationsChart");
+            if (destinationsCanvas && data.value.destination_distribution && data.value.destination_distribution.length > 0) {
+                const dests = data.value.destination_distribution;
+                const labels = dests.map(d => d.destination);
+                const values = dests.map(d => d.count);
+
+                chartInstances.destinations = new Chart(destinationsCanvas, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Bootcampers',
+                            data: values,
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6
+                        }]
+                    },
+                    options: {
+                        indexAxis: 'y',
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: { x: { beginAtZero: true } }
+                    }
+                });
+            }
+        };
+
+        const resetFilters = () => {
+            viewMode.value = 'single';
+            selectedYear.value = '2026';
+            rangeStart.value = '2023';
+            rangeEnd.value = '2026';
+            loadData();
+        };
+
+        onMounted(() => {
+            loadData();
+        });
+
+        return {
+            viewMode,
+            selectedYear,
+            rangeStart,
+            rangeEnd,
+            loading,
+            error,
+            data,
+            isHistorical,
+            loadData,
+            resetFilters
+        };
+    }
+}).mount('#app');
+</script>
+
+</body>
+</html>

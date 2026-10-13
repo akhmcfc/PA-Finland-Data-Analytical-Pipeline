@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Project Access Finland - Bootcamp Analytics Dashboard</title>
+<style>
+:root{--gold:#ffd700;--gold-d:#e6c200;--ink:#1a1a2e;--cream:#fff8e1;--muted:#64748b;--soft:#94a3b8;--border:#e2e8f0}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--cream);color:var(--ink);padding:1rem}
+.wrap{max-width:1200px;margin:0 auto;background:#fff;border-left:6px solid var(--gold);border-radius:16px;padding:2rem;box-shadow:0 4px 14px rgba(0,0,0,.06)}
+h1{font-size:1.75rem;font-weight:800;color:var(--gold)}
+.sub{font-size:1.6rem;font-weight:800;margin:.25rem 0 1rem}
+hr{border:0;border-top:2px solid #eceae0;margin-bottom:1.5rem}
+.selector{display:flex;flex-wrap:wrap;align-items:flex-end;gap:1rem;background:#fff;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);padding:1.5rem;margin-bottom:1.5rem}
+.selector label{display:block;font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);font-weight:700;margin-bottom:.4rem}
+select{font:inherit;padding:.6rem .9rem;border:2px solid var(--border);border-radius:8px;background:#fff;min-width:140px}
+select:hover,select:focus{border-color:var(--gold-d);outline:0}
+button{margin-left:auto;background:var(--gold);color:var(--ink);border:0;font:inherit;font-weight:700;padding:.75rem 1.4rem;border-radius:8px;cursor:pointer;box-shadow:0 3px 8px rgba(255,215,0,.45)}
+button:hover{background:var(--gold-d)}
+.hidden{display:none!important}
+.sec-title{background:linear-gradient(135deg,#ffd700 0%,#ffb700 100%);color:var(--ink);font-size:1.3rem;font-weight:700;padding:1rem;margin-top:2.5rem;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,.1)}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;margin:1.5rem 0}
+.metric{background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:4px solid var(--gold)}
+.metric .l{font-size:.85rem;text-transform:uppercase;letter-spacing:.5px;color:var(--muted)}
+.metric .v{font-size:2rem;font-weight:700;color:#d4a900;margin-top:.25rem}
+.metric .n{font-size:.8rem;color:var(--soft);margin-top:.5rem}
+.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(400px,100%),1fr));gap:1.5rem}
+.chart{background:#fff;padding:1.5rem;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.06);border:1px solid #f3efe0}
+.chart h3{font-size:1.1rem;margin-bottom:.25rem}
+.chart p{font-size:.85rem;color:var(--muted);margin-bottom:.75rem}
+.box{position:relative;height:380px}
+#status{padding:1rem;border-radius:8px;font-weight:600;margin-bottom:1rem}
+#status.info{background:#fff9db;color:#8a6d00}#status.err{background:#fde8e8;color:#b42318}#status:empty{display:none}
+@media(max-width:768px){h1{font-size:1.4rem}.wrap{padding:1rem}.selector>div,select{width:100%}button{margin-left:0;width:100%}}
+</style>
+<style>/*PA-INLINE-TABS*/﻿.pa-tabs{display:flex;gap:4px;margin:18px 0 8px;border-bottom:2px solid #f1e3b0;flex-wrap:wrap}
+.pa-tabs button{margin:0;background:none;box-shadow:none;border-radius:0;border-bottom:4px solid transparent;color:#6b7280;padding:10px 18px 8px;text-align:left;font-weight:700}
+.pa-tabs button small{display:block;font-weight:400;font-size:.72rem}
+.pa-tabs button:hover{background:#fff8e1}
+.pa-tabs button.on{color:#1a1a2e;border-bottom-color:#ffd700}
+.pa-kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin:12px 0}
+.pa-kpi{background:#fff;border-left:5px solid #ffd700;border-radius:12px;padding:14px 16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.pa-kpi .l{font-size:.78rem;text-transform:uppercase;letter-spacing:.5px;color:#64748b}
+.pa-kpi .v{font-size:2rem;font-weight:700;color:#d4a900}
+.pa-kpi .n{font-size:.8rem;color:#94a3b8}
+.pa-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,420px),1fr));gap:16px}
+.pa-card{background:#fff;border-radius:12px;padding:18px;box-shadow:0 2px 8px rgba(0,0,0,.06);border-left:5px solid #ffd700}
+.pa-card h3{margin:0 0 10px;font-size:1.05rem}
+.pa-row{display:grid;grid-template-columns:minmax(80px,40%) 1fr 34px;gap:8px;align-items:center;margin:6px 0;font-size:.88rem}
+.pa-row b{text-align:right}
+.pa-bar{background:#f3f4f6;border-radius:6px;height:16px;overflow:hidden}
+.pa-bar i{display:block;height:100%;background:linear-gradient(90deg,#ffd700,#f0b400);border-radius:6px}
+.pa-empty{background:#fff;border:2px dashed #f1e3b0;border-radius:12px;padding:28px;text-align:center;color:#6b7280}
+</style><script>/*PA-STATIC-SHIM*/(function(){
+  if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  var of=window.fetch.bind(window);
+  window.fetch=function(u,o){
+    var s=String(u&&u.url?u.url:u),m,t=null;
+    if((m=s.match(/\/year\/(\d{4})\/dashboard/))) t='data/year-'+m[1]+'.json';
+    else if((m=s.match(/\/range\/dashboard\?start_year=(\d{4})&end_year=(\d{4})/))) t='data/range-'+m[1]+'-'+m[2]+'.json';
+    else if(/\/multi-year\/config/.test(s)) t='data/config.json';
+    else if(/\/years\/available/.test(s)) t='data/years.json';
+    else if((m=s.match(/\/survey\/(\d)(?:\D|$)/))) t='data/survey-'+m[1]+'.json';
+    if(!t) return of(u,o);
+    return of(t,{cache:'no-store'});
+  };
+})();</script></head>
+<body>
+<div class="wrap">
+  <h1>&#127891; Project Access Finland</h1>
+  <div class="sub">Bootcamp Analytics Dashboard</div>
+  <hr>
+  <div class="selector">
+    <div><label for="mode">View</label>
+      <select id="mode"><option value="single">Single Year</option><option value="range">Year Range</option><option value="hist">Historical (2023-2025)</option></select></div>
+    <div id="gSingle"><label for="year">Year</label><select id="year"></select></div>
+    <div id="gStart" class="hidden"><label for="start">Start Year</label><select id="start"></select></div>
+    <div id="gEnd" class="hidden"><label for="end">End Year</label><select id="end"></select></div>
+    <button id="reset">Reset All Filters</button>
+  </div>
+  <div id="status"></div>
+  <div id="out"></div>
+</div>
+
+<script>
+const API = ['localhost','127.0.0.1'].includes(location.hostname) ? 'http://localhost:5000' : 'https://YOUR-API-HOST';
+const LIVE = 2026;
+const BLUES   = ['#1e3a8a','#2563eb','#3b82f6','#60a5fa','#93c5fd','#1d4ed8','#bfdbfe','#0ea5e9','#38bdf8','#7dd3fc'];
+const PURPLES = ['#7c3aed','#a855f7','#d8b4fe','#6d28d9','#c084fc','#e9d5ff','#8b5cf6','#f3e8ff','#4c1d95','#581c87'];
+const $ = id => document.getElementById(id);
+const charts = [];
+const status = (t,k) => { const s=$('status'); s.className=k||''; s.textContent=t||''; };
+
+function loadChartJs(){
+  const urls=['https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js','https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js','https://unpkg.com/chart.js@3.9.1/dist/chart.min.js'];
+  return new Promise((ok,fail)=>{let i=0;(function next(){
+    if(window.Chart) return ok();
+    if(i>=urls.length) return fail(new Error('Chart.js could not be loaded from any CDN'));
+    const s=document.createElement('script'); s.src=urls[i++]; s.onload=()=>window.Chart?ok():next(); s.onerror=next; document.head.appendChild(s);
+  })();});
+}
+
+async function getJSON(path){
+  const c=new AbortController(), t=setTimeout(()=>c.abort(),70000);
+  try{ const r=await fetch(API+path,{signal:c.signal}); if(!r.ok) throw new Error('HTTP '+r.status); return await r.json(); }
+  finally{ clearTimeout(t); }
+}
+
+const withOthers = (rows,n,key)=>{ const s=(rows||[]).slice().sort((a,b)=>b.count-a.count); const head=s.slice(0,n); const rest=s.slice(n).reduce((x,r)=>x+r.count,0); if(rest>0){ const o={count:rest}; o[key]='Others'; head.push(o); } return head; };
+const topN = (rows,n)=> (rows||[]).slice().sort((a,b)=>b.count-a.count).slice(0,n);
+
+function hbar(canvas, rows, key, color){
+  charts.push(new Chart(canvas,{type:'bar',
+    data:{labels:rows.map(r=>r[key]),datasets:[{data:rows.map(r=>r.count),backgroundColor:color,borderRadius:6}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},
+      scales:{x:{beginAtZero:true,ticks:{precision:0},grid:{color:'#f0f0f0'}},y:{grid:{display:false},ticks:{font:{size:11}}}}}}));
+}
+function doughnut(canvas, rows, key, colors){
+  charts.push(new Chart(canvas,{type:'doughnut',
+    data:{labels:rows.map(r=>r[key]),datasets:[{data:rows.map(r=>r.count),backgroundColor:rows.map((r,i)=>(r[key]==='Others')?'#9ca3af':colors[i%colors.length]),borderWidth:2,borderColor:'#fff'}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'55%',
+      plugins:{legend:{position:'bottom',labels:{boxWidth:14,font:{size:12}}},
+        tooltip:{callbacks:{label:c=>' '+c.label+': '+c.parsed}}}}}));
+}
+
+function section(title, d, isLive, mixed){
+  const el=document.createElement('section');
+  const rcard=(v,n)=>'<div class="metric"><div class="l">Acceptance Rate</div><div class="v">'+v+'</div><div class="n">'+n+'</div></div>';
+  const rate = isLive
+    ? rcard(d.acceptance_rate==null?'TBD':d.acceptance_rate, d.acceptance_rate_note||'2026+ bootcampers only')
+    : (d.acceptance_rate ? rcard(d.acceptance_rate, d.acceptance_rate_note||'') : '');
+  const AY=isLive?(d.acceptance_by_year||[]):[]; const SL={completed:'Completed',in_progress:'Survey 3 in progress',not_started:'Awaiting Survey 3'};
+  const by=AY.length?'<div class="metric" style="grid-column:1/-1"><div class="l">Acceptance rate by cohort</div>'+AY.map(y=>'<div class="n" style="font-size:.95rem;color:#1a1a2e"><b>'+y.year+'</b> &middot; '+(y.detail||SL[y.status]||y.status)+' &middot; '+(y.rate||'TBD')+(y.responses?' ('+y.responses+' of '+y.bootcampers+' responded)':'')+'</div>').join('')+'</div>':'';
+  const chart=(h,sub)=>'<div class="chart"><h3>'+h+'</h3><p>'+sub+'</p><div class="box"><canvas></canvas></div></div>';
+  const A='All '+d.applicants_count+' applicants', B=d.bootcampers_count+' bootcampers (multiple answers allowed)';
+  el.innerHTML='<div class="sec-title">'+title+'</div>'+
+    '<div class="metrics">'+
+      '<div class="metric"><div class="l">Total Applicants</div><div class="v">'+d.applicants_count+'</div><div class="n">from Finland</div></div>'+
+      '<div class="metric"><div class="l">Bootcampers Selected</div><div class="v">'+d.bootcampers_count+'</div><div class="n">Helsinki bootcamp</div></div>'+
+      rate+by+
+    '</div>'+
+    '<div class="charts">'+
+      chart('&#127891; Top Finnish High Schools',A)+
+      chart('&#128506; Geographic Distribution (Finland)',A)+
+      chart('&#127891; Dream Universities',B)+
+      chart('&#128218; Intended Fields of Study',B)+
+      chart('&#127757; Target Study Destinations',B)+
+    '</div>';
+  $('out').appendChild(el);
+  const c=el.querySelectorAll('canvas');
+  hbar(c[0], topN(d.high_schools,12), 'school', '#2563eb');
+  doughnut(c[1], topN(d.cities,10), 'city', BLUES);
+  hbar(c[2], topN(d.dream_universities,15), 'university', '#059669');
+  doughnut(c[3], withOthers(d.field_distribution,10,'field'), 'field', PURPLES);
+  hbar(c[4], topN(d.destination_distribution,99), 'destination', '#dc2626');
+}
+
+async function refresh(){/*PA-RANGE-V2*/
+  const m=$('mode').value;
+  const a = m==='hist' ? 2023 : (m==='single' ? +$('year').value : +$('start').value);
+  const b = m==='hist' ? LIVE-1 : (m==='single' ? a : +$('end').value);
+  status('Loading data... (the free-tier server can take up to a minute to wake up)','info');
+  try{
+    const path = (a===b && a>=LIVE)
+      ? '/api/multi-year/year/'+a+'/dashboard'
+      : '/api/multi-year/range/dashboard?start_year='+a+'&end_year='+b;
+    const d = await getJSON(path);
+    status('');
+    charts.splice(0).forEach(c=>c.destroy());
+    $('out').innerHTML='';
+    const span = a===b ? String(a) : a+'-'+b;
+    let title;
+    if(b<LIVE){
+      title='&#128202; Historical Data ('+span+')';
+    }else if(a>=LIVE){
+      const AYs=d.acceptance_by_year||[];
+      const prog=!AYs.length||AYs.some(y=>y.status!=='completed');
+      title=(prog?'&#128994; ':'&#9989; ')+(prog?'Live Tracking':'Completed Cohorts')+' ('+span+')';
+    }else{
+      title='&#128202; Collective Data ('+span+')';
+    }
+    section(title, d, b>=LIVE, a<LIVE && b>=LIVE);
+  }catch(e){ status('Could not load data from the API: '+e.message,'err'); }
+}
+
+function syncMode(){
+  const m=$('mode').value;
+  $('gSingle').classList.toggle('hidden',m!=='single');
+  $('gStart').classList.toggle('hidden',m!=='range');
+  $('gEnd').classList.toggle('hidden',m!=='range');
+}
+
+(async function(){
+  try{ await loadChartJs(); }
+  catch(e){ status(e.message+'. Check your network or ad-blocker.','err'); return; }
+  let years=[2023,2024,2025,2026];
+  try{ const y=await getJSON('/api/multi-year/years/available'); const arr=Array.isArray(y)?y:y.years; if(arr&&arr.length) years=arr.slice().sort(); }catch(e){}
+  const opts=years.map(y=>'<option value="'+y+'">'+y+'</option>').join('');
+  ['year','start','end'].forEach(id=>$(id).innerHTML=opts);
+  const first=years[0], last=years[years.length-1];
+  const reset=()=>{ $('mode').value='single'; $('year').value=last; $('start').value=first; $('end').value=last; syncMode(); };
+  reset();
+  $('mode').onchange=()=>{ syncMode(); refresh(); };
+  $('year').onchange=refresh;
+  $('start').onchange=()=>{ if(+$('start').value>+$('end').value) $('end').value=$('start').value; refresh(); };
+  $('end').onchange=()=>{ if(+$('end').value<+$('start').value) $('start').value=$('end').value; refresh(); };
+  $('reset').onclick=()=>{ reset(); refresh(); };
+  refresh();
+})();
+</script>
+<script>﻿(function(){
+  var PATHS=['/api/multi-year/survey/','/survey/'], cache={};
+  var ST={no_responses:'No responses yet',in_progress:'In progress',complete:'All bootcampers responded'};
+  var MAP={'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'};
+  function esc(s){return String(s).replace(/[&<>"']/g,function(c){return MAP[c];});}
+  function kpi(l,v,n){return '<div class="pa-kpi"><div class="l">'+esc(l)+'</div><div class="v">'+esc(v)+'</div><div class="n">'+esc(n||'')+'</div></div>';}
+  function bars(c){
+    var max=Math.max.apply(null,c.values.concat([1])),h='<div class="pa-card"><h3>'+esc(c.title)+'</h3>';
+    for(var i=0;i<c.labels.length;i++){h+='<div class="pa-row"><span>'+esc(c.labels[i])+'</span><div class="pa-bar"><i style="width:'+Math.round(100*c.values[i]/max)+'%"></i></div><b>'+c.values[i]+'</b></div>';}
+    return h+'</div>';
+  }
+  function view(n,d){
+    var pct=d.bootcampers_count?Math.round(100*d.responses_count/d.bootcampers_count):0;
+    var h='<div class="pa-kpis">'+kpi('Responses',d.responses_count,'of '+d.bootcampers_count+' bootcampers')+kpi('Completion',pct+'%',ST[d.status]||'');
+    if(d.window) h+=kpi('Send window open',d.window.open,d.window.upcoming+' upcoming, '+d.window.closed+' closed');
+    (d.numeric||[]).forEach(function(x){h+=kpi('Avg: '+x.title,x.average,'n = '+x.n);});
+    h+='</div>';
+    if(!d.responses_count){
+      h+='<div class="pa-empty">No Survey '+n+' responses yet.'+(d.window?' '+d.window.open+' bootcamper(s) are in their send window right now.':'')+'</div>';
+    }else{
+      h+='<div class="pa-grid">'+(d.charts||[]).map(bars).join('')+'</div>'+((d.text_columns||[]).length?'<p style="color:#6b7280;font-size:.85rem;margin-top:14px">Written answers collected (not shown): '+d.text_columns.map(function(t){return esc(t.title)+' ('+t.answers+')';}).join(', ')+'</p>':'');
+    }
+    return h;
+  }
+  async function load(n,box){
+    box.innerHTML='<div class="pa-empty">Loading...</div>';
+    var data=null,err='';
+    for(var i=0;i<PATHS.length&&!data;i++){
+      try{var r=await fetch(API+PATHS[i]+n); if(r.ok) data=await r.json(); else err='HTTP '+r.status;}catch(e){err=e.message;}
+    }
+    if(!data){box.innerHTML='<div class="pa-empty">Could not load Survey '+n+' ('+esc(err)+').</div>';return;}
+    cache[n]=data; box.innerHTML=view(n,data);
+  }
+  function enhance(sec){
+    if(sec.getAttribute('data-tabs')) return;
+    var t=sec.querySelector('.sec-title');
+    if(!t||!/Live Tracking|Completed Cohorts/.test(t.textContent)) return; if(document.getElementById('mode').value!=='single') return;
+    sec.setAttribute('data-tabs','1');
+    var s1=document.createElement('div'),s2=document.createElement('div'),s3=document.createElement('div');
+    [].slice.call(sec.children).forEach(function(ch){if(ch!==t) s1.appendChild(ch);});
+    s2.style.display='none'; s3.style.display='none';
+    var bar=document.createElement('div'); bar.className='pa-tabs';
+    var labels=[['Survey 1','Before the bootcamp'],['Survey 2','During applications'],['Survey 3','After offers']];
+    var panels=[s1,s2,s3],btns=[];
+    labels.forEach(function(L,i){
+      var b=document.createElement('button'); b.innerHTML=L[0]+'<small>'+L[1]+'</small>';
+      if(i===0) b.className='on';
+      b.onclick=function(){
+        panels.forEach(function(p,j){p.style.display=(i===j)?'':'none'; btns[j].className=(i===j)?'on':'';});
+        if(i>0&&!cache[i+1]) load(i+1,panels[i]);
+      };
+      btns.push(b); bar.appendChild(b);
+    });
+    sec.appendChild(bar); panels.forEach(function(p){sec.appendChild(p);});
+  }
+  var out=document.getElementById('out');
+  if(out) new MutationObserver(function(){
+    [].slice.call(out.children).forEach(function(c){ if(c.tagName==='SECTION') enhance(c); });
+  }).observe(out,{childList:true});
+})();
+</script><script>/*PA-OUTCOMES*/﻿(function(){
+  if(typeof getJSON!=='function') return;
+  var orig=getJSON;
+  getJSON=async function(p){var d=await orig(p); if(String(p).indexOf('/dashboard')>-1) window.__paLast=d; return d;};
+  function card(l,v,n){return '<div class="metric"><div class="l">'+l+'</div><div class="v">'+v+'</div><div class="n">'+(n||'')+'</div></div>';}
+  function add(sec){
+    if(sec.getAttribute('data-pa-out')) return;
+    var t=sec.querySelector('.sec-title'); if(!t||!/Historical|Collective/.test(t.textContent)) return;
+    var H=(window.__paLast||{}).historical_outcomes; if(!H||!H.years||!H.years.length) return;
+    var ch=sec.querySelector('.charts'); if(!ch) return;
+    sec.setAttribute('data-pa-out','1');
+    var pct=H.responses?Math.round(100*H.with_offer/H.responses)+'% of replies':'';
+    var h='<div style="margin:18px 0 6px;font-weight:700;font-size:1.05rem">Past bootcamper outcomes</div><div class="metrics">'
+      +card('Survey replies',H.responses,'of '+H.bootcampers+' bootcampers')
+      +card('Offer from a university abroad',H.with_offer,pct)
+      +card('Studying abroad now',H.studying_abroad,'self-reported');
+    if(H.years.length>1){
+      h+='<div class="metric" style="grid-column:1/-1"><div class="l">By cohort year</div>'+H.years.map(function(y){
+        return '<div class="n" style="font-size:.95rem;color:#1a1a2e"><b>'+y.year+'</b> &middot; '+y.with_offer+' with offers &middot; '+y.studying_abroad+' studying abroad &middot; '+y.responses+' replies of '+y.bootcampers+' bootcampers</div>';
+      }).join('')+'</div>';
+    }
+    h+='</div><p style="font-size:.8rem;color:#64748b;margin:0 0 8px">From the ex-bootcamper survey. Only people who replied are counted, so these numbers are minimums.</p>';
+    var box=document.createElement('div'); box.innerHTML=h;
+    while(box.firstChild) sec.insertBefore(box.firstChild,ch);
+  }
+  var out=document.getElementById('out');
+  if(out) new MutationObserver(function(){
+    [].slice.call(out.children).forEach(function(c){ if(c.tagName==='SECTION') add(c); });
+  }).observe(out,{childList:true});
+})();
+</script></body>
+</html>

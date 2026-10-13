@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+*.db
+*.sqlite
+*.csv
+*.xlsx
+*.env
+.env*
+*.bak*
+*.backup
+data/
+database/
+config/config.py
