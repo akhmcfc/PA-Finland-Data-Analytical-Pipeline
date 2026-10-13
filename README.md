@@ -1,5 +1,7 @@
 # Project Access Finland: Survey Analytics Pipeline
 
+**Live dashboard (group totals only):** https://akhmcfc.github.io/pa-finland-dashboard/
+
 End-to-end pipeline that collects university-application plans and outcomes from Project Access Finland students through three Typeform surveys, stores them in SQLite, and serves an aggregate-only analytics dashboard. Built for the 2026 bootcamp cohort, designed to roll forward to any future year with no code changes.
 
 **This repository contains code only.** No student data, names, emails, candidate IDs, databases or secrets are included. The live public dashboard shows group totals only.
