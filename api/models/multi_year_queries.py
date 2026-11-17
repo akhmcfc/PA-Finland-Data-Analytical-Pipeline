@@ -125,7 +125,7 @@ def get_bootcamper_dream_universities(years):
                 hit = {canon for rx, canon in aliases if rx.search(part)}
                 if hit:
                     found |= hit
-                elif len(part.split()) <= 5 and not (len(part.split()) > 2 and re.search(r'[???]', part, re.I)):
+                elif len(part.split()) <= 5 and not (len(part.split()) > 2 and re.search(r'[\u00e4\u00f6\u00e5]', part, re.I)):
                     found.add(part)
             for uni in found:
                 uni_count[uni] = uni_count.get(uni, 0) + 1
