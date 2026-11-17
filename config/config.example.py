@@ -1,4 +1,41 @@
-# Copy to config/config.py. Secrets come from environment variables only.
+# Copy this file to config/config.py. Secrets come from environment variables only.
+"""
+Configuration settings for 2026 bootcamp pipeline
+"""
+
 import os
+from datetime import datetime
+
+# Cohort year being processed (set PA_YEAR before running)
+BOOTCAMP_YEAR = int(os.environ.get("PA_YEAR", "2026"))
+if "PA_YEAR" not in os.environ:
+    print("WARNING: PA_YEAR not set, using 2026")
+
+# Paths
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA_DIR = os.path.join(BASE_DIR, 'data')
+DATABASE_DIR = os.path.join(BASE_DIR, 'database')
+SCRIPTS_DIR = os.path.join(BASE_DIR, 'scripts')
+
+# File paths
+RAW_DATA_FILE = os.path.join(DATA_DIR, 'raw', f'PA_Fin_{BOOTCAMP_YEAR}_Bootcamp_Applications.csv')
+BOOTCAMPERS_FILE = os.path.join(DATA_DIR, 'processed', f'PA_{BOOTCAMP_YEAR}_bootcampers_final.csv')
+DATABASE_FILE = os.environ.get("PA_DB", os.path.join(DATABASE_DIR, "project_access_2026.db"))
+
+# 2026 Configuration
+CANDIDATE_ID_PREFIX = f"PA-{BOOTCAMP_YEAR}"
+
+# Typeform IDs (fill in after creating forms)
+SURVEY_1_FORM_ID = "YOUR_SURVEY_1_FORM_ID"
+SURVEY_2_FORM_ID = "YOUR_SURVEY_2_FORM_ID"
+SURVEY_3_FORM_ID = "YOUR_SURVEY_3_FORM_ID"
+
+# Logging
+LOG_LEVEL = "INFO"
+LOG_FILE = os.path.join(BASE_DIR, 'logs', f'pipeline_{datetime.now().strftime("%Y%m%d")}.log')
+
 TYPEFORM_API_TOKEN = os.environ.get("TYPEFORM_API_TOKEN", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or __import__("secrets").token_hex(16)
+
+# Total applicants to the 2026 bootcamp (deduplicated, excluding test entries)
+APPLICANTS_TOTAL_2026 = 224

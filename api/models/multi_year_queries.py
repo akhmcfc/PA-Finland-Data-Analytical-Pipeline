@@ -1,10 +1,11 @@
-﻿"""
+"""
 Multi-year database query functions for historical + live bootcamp data
 Follows logic: High schools/cities from ALL applicants, Universities/fields from BOOTCAMPERS ONLY
 """
 
 import sqlite3
 from config.config import DATABASE_FILE
+from api.utils.translations import translate_to_english
 
 def get_years_in_range(start_year, end_year):
     """Get list of years in range that have data"""
@@ -32,14 +33,16 @@ def get_bootcampers_count(years):
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
     total = 0
-    
+
     for year in years:
         try:
-            cursor.execute(f'SELECT COUNT(*) FROM bootcampers_{year}')
+            # 2026 uses candidate_mapping_2026, others use bootcampers_{year}
+            table = 'candidate_mapping_2026' if year == 2026 else f'bootcampers_{year}'
+            cursor.execute(f'SELECT COUNT(*) FROM {table}')
             total += cursor.fetchone()[0]
         except:
             pass
-    
+
     conn.close()
     return total
 
@@ -96,27 +99,37 @@ def get_cities_distribution(years):
     return [{"city": city, "count": count} for city, count in sorted_cities[:15]]
 
 def get_bootcamper_dream_universities(years):
-    """Get dream universities from BOOTCAMPERS ONLY"""
+    """Dream universities from BOOTCAMPERS ONLY. Names are normalised with the university_aliases table; each bootcamper counts once per university."""
+    import re
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
-    
+    try:
+        aliases = [(re.compile(pat, re.I), canon) for pat, canon in cursor.execute("SELECT pattern, canonical FROM university_aliases")]
+    except Exception:
+        aliases = []
     uni_count = {}
-    
     for year in years:
         try:
             cursor.execute(f'SELECT dream_universities FROM applications_{year} WHERE was_selected = 1')
-            
-            for row in cursor.fetchall():
-                if row[0]:
-                    unis = [u.strip() for u in row[0].split(',') if u.strip()]
-                    for uni in unis:
-                        if uni and uni.lower() != 'other':
-                            uni_count[uni] = uni_count.get(uni, 0) + 1
-        except:
-            pass
-    
+            rows = cursor.fetchall()
+        except Exception:
+            continue
+        for (text,) in rows:
+            if not text:
+                continue
+            found = set()
+            for part in re.split(r"[,;/\n]+|\s+(?:and|or|ja|tai)\s+", text, flags=re.I):
+                part = part.strip(" .")
+                if not part or part.lower() in ("other", "not listed here"):
+                    continue
+                hit = {canon for rx, canon in aliases if rx.search(part)}
+                if hit:
+                    found |= hit
+                elif len(part.split()) <= 5 and not (len(part.split()) > 2 and re.search(r'[???]', part, re.I)):
+                    found.add(part)
+            for uni in found:
+                uni_count[uni] = uni_count.get(uni, 0) + 1
     conn.close()
-    
     sorted_unis = sorted(uni_count.items(), key=lambda x: x[1], reverse=True)
     return [{"university": uni, "count": count} for uni, count in sorted_unis[:20]]
 
@@ -238,3 +251,97 @@ def get_multi_year_dashboard(start_year, end_year):
 def get_single_year_dashboard(year):
     """Get dashboard for single year"""
     return get_multi_year_dashboard(year, year)
+
+
+
+
+
+# ---- Finnish/free-text normalization overrides (appended; later defs win) ----
+import re as _re
+
+_DEST_RULES = [
+    ("Mainland Europe", r"manner-?eurooppa|mainland europe|continental europe|hollanti|netherlands|ranska|france|saksa|germany|scandinavia|\beu\b|europe"),
+    ("UK & Ireland", r"iso-britannia|\buk\b|ireland|irlanti|britain|england"),
+    ("USA & Canada", r"pohjois-amerikka|north america|\busa\b|kanada|canada"),
+    ("Asia", r"aasia|\basia\b|singapore|japani|japan|etel\u00e4-korea|south korea|china|hong kong"),
+    ("Oceania", r"oseania|oceania|australia|uusi-seelanti|new zealand"),
+    ("Africa", r"muualla maailmassa|etel\u00e4-amerikka|south america|afrikka|africa"),
+    ("Not sure / Anywhere abroad", r"en ole viel\u00e4 varma|not sure|haluan vain ulkomaille|anywhere|everywhere|just want to go abroad|unsure"),
+]
+
+_FIELD_RULES = [
+    ("Law", r"\blaw|oikeus|\blak(i|ia|itiet)"),
+    ("Business/Economics", r"econ|business|financ|accounting|kauppa|bisnes|rahoitus|management|commerce|liike"),
+    ("Medicine/Health", r"medic|l\u00e4\u00e4k|veterin|nursing|health|dent|pharma"),
+    ("STEM/Engineering", r"engineer|insin\u00f6\u00f6|robotic|architect|arkki|rakennus|computer|\bict\b|\bit\b|informatiikka|data|software|math|matem|physic|fysiik|quantum|chem|kemi|biolog|neuroscien|astronom|geolog|environment|\bstem\b"),
+    ("Social Sciences", r"politic|international relations|\bir\b|\bppe\b|sociolog|psycholog|global affairs|european studies|anthropolog|kansainv|yhteiskunt|social"),
+    ("Humanities", r"literature|linguist|translation|histor|philosoph|language|humanit|kirjall"),
+    ("Arts/Media", r"\bart\b|\barts\b|design|music|film|kuvataide|media"),
+    ("Undecided/Exploring", r"exploring|not sure|undecided|en ole|ei viel\u00e4|unsure"),
+]
+
+_FIELD_RULES.append(("STEM/Engineering", r"natural science|luonnontiet"))
+
+def _labels(text, rules):
+    t = (text or "").lower()
+    out = []
+    for name, pat in rules:
+        if _re.search(pat, t) and name not in out:
+            out.append(name)
+    return out
+
+def _cols(cur, table):
+    return [r[1] for r in cur.execute('PRAGMA table_info("%s")' % table)]
+
+def _fetch_raw(cur, year, names):
+    rows = []
+    for table, extra in (("pre_bootcamp_%d" % year, ""), ("applications_%d" % year, " AND was_selected = 1")):
+        cols = _cols(cur, table)
+        col = next((n for n in names if n in cols), None)
+        if not cols or not col:
+            continue
+        idc = "candidate_id" if "candidate_id" in cols else "rowid"
+        q = 'SELECT %s, "%s" FROM "%s" WHERE "%s" IS NOT NULL AND "%s" != ""%s' % (idc, col, table, col, col, extra)
+        try:
+            rows = cur.execute(q).fetchall()
+            break
+        except Exception:
+            continue
+    return rows
+
+def get_bootcamper_destinations_distribution(years):
+    conn = sqlite3.connect(DATABASE_FILE)
+    cur = conn.cursor()
+    counts = {}
+    for y in years:
+        for _id, raw in _fetch_raw(cur, y, ["target_destinations", "study_destination"]):
+            for l in (_labels(raw, _DEST_RULES) or ["Not sure / Anywhere abroad"]):
+                counts[l] = counts.get(l, 0) + 1
+    conn.close()
+    return [{"destination": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])]
+
+def get_bootcamper_fields_distribution(years):
+    conn = sqlite3.connect(DATABASE_FILE)
+    cur = conn.cursor()
+    counts = {}
+    for y in years:
+        claude = {}
+        if y == 2026:
+            try:
+                for cid, cat in cur.execute("SELECT candidate_id, category FROM field_categories_2026"):
+                    claude.setdefault(cid, []).append(cat)
+            except Exception:
+                pass
+        for cid, raw in _fetch_raw(cur, y, ["field_of_study", "intended_field"]):
+            if cid in claude:
+                labs = claude[cid]
+            else:
+                labs = _labels(raw, _FIELD_RULES)
+                if len(labs) > 1:
+                    labs = [l for l in labs if l != "Undecided/Exploring"]
+                labs = labs or ["Other"]
+            for l in labs:
+                counts[l] = counts.get(l, 0) + 1
+    conn.close()
+    return [{"field": k, "count": v} for k, v in sorted(counts.items(), key=lambda x: -x[1])]
+

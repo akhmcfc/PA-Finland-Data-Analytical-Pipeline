@@ -1,4 +1,4 @@
-﻿import os, sys, json, sqlite3, time
+import os, sys, json, sqlite3, time
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import requests
 from config.config import DATABASE_FILE
@@ -7,9 +7,9 @@ try:
 except Exception:
     _CFG = None
 try:
-    from config.config import SURVEY_2_FORM_ID, SURVEY_3_FORM_ID
+    from config.config import SURVEY_2_FORM_ID, SURVEY_3_FORM_ID, BOOTCAMP_YEAR
 except Exception:
-    SURVEY_2_FORM_ID = SURVEY_3_FORM_ID = None
+    SURVEY_2_FORM_ID = SURVEY_3_FORM_ID = BOOTCAMP_YEAR = None
 
 API = "https://api.typeform.com/forms"
 
@@ -116,7 +116,7 @@ def sync():
     if not token():
         sys.exit("No Typeform token. Set $env:TYPEFORM_API_TOKEN first.")
     conn = sqlite3.connect(DATABASE_FILE)
-    setup(conn, [(2026, 2, SURVEY_2_FORM_ID), (2026, 3, SURVEY_3_FORM_ID)])
+    setup(conn, [(BOOTCAMP_YEAR, 2, SURVEY_2_FORM_ID), (BOOTCAMP_YEAR, 3, SURVEY_3_FORM_ID)])
     for year, survey, fid in conn.execute("select year, survey_no, form_id from survey_forms order by year, survey_no").fetchall():
         r = requests.get("%s/%s/responses" % (API, fid), headers={"Authorization": "Bearer " + token()}, params={"page_size": 1000}, timeout=30)
         if r.status_code == 401:

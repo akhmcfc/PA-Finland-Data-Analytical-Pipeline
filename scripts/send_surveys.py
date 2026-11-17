@@ -109,7 +109,7 @@ def run(c, send, mx, today=None):
         if not send: continue
         try: SENDER(msg)
         except Exception as ex: print("send failed:", type(ex).__name__); continue
-        now = dt.datetime.now().isoformat(timespec="seconds")
+        now = today.isoformat()
         c.execute("INSERT INTO survey_send_log(yr,survey_no,candidate_id,kind,sent_at) VALUES(?,?,?,?,?)", (yr, n, row["candidate_id"], kind, now))
         if kind == "initial":
             c.execute(f"UPDATE candidate_mapping_{yr} SET survey_{n}_sent_date=? WHERE candidate_id=?", (today.isoformat(), row["candidate_id"]))

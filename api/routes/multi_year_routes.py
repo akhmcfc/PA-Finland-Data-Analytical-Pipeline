@@ -1,4 +1,4 @@
-﻿"""
+"""
 Multi-year API routes for historical (2023-2025) and live (2026+) data
 """
 
@@ -167,3 +167,92 @@ def range_acceptance_rate():
         note = "Tracked from bootcamper survey responses"
     
     return jsonify({"year_range": f"{start_year}-{end_year}", "acceptance_rate": rate, "note": note})
+
+
+# ---- Survey tabs (added) ----
+from flask import jsonify as _jsonify
+from api.models.survey_queries import get_survey_data as _get_survey_data
+
+@bp.route("/survey/<int:n>")
+def survey_tab_data(n):
+    if n not in (1, 2, 3):
+        return _jsonify({"error": "survey must be 1, 2 or 3"}), 404
+    return _jsonify(_get_survey_data(n))
+
+
+# ---- Survey tab fixes (added) ----
+import json as _sj, re as _sre
+from flask import request as _sreq
+from api.models.survey_fix import fix_survey as _fix_survey
+
+@bp.after_app_request
+def _survey_fix(resp):
+    try:
+        if not _sre.search(r"/survey/\d+/?$", _sreq.path) or resp.status_code != 200 or resp.mimetype != "application/json":
+            return resp
+        data = _sj.loads(resp.get_data(as_text=True))
+        n = int(_sre.search(r"/(\d+)/?$", _sreq.path).group(1))
+        resp.set_data(_sj.dumps(_fix_survey(data, n)))
+    except Exception:
+        pass
+    return resp
+
+
+
+# ---- Acceptance rate rules (added) ----
+import json as _json
+from flask import request as _request, jsonify as _jsonify
+from api.models.acceptance import live_years_summary as _lys, outcomes_by_year as _oby, year_config as _year_config, span as _span
+
+@bp.route("/config")
+def _year_config_endpoint():
+    c = _year_config()
+    return _jsonify({"live_years": c["live"], "tracked_years": c["live"], "historical_years": c["historical"],
+                     "live_start_year": (c["live"][0] if c["live"] else None), "years": c["years"]})
+
+@bp.after_request
+def _acceptance_fix(resp):
+    try:
+        if "/dashboard" not in _request.path or resp.status_code != 200 or resp.mimetype != "application/json":
+            return resp
+        data = _json.loads(resp.get_data(as_text=True))
+        cfg = _year_config()
+        yrs = sorted(set(data.get("years_included") or []))
+        live = [y for y in yrs if y in cfg["live"]]
+        hist = [y for y in yrs if y in cfg["historical"]]
+        data["acceptance_rate"] = None
+        data["acceptance_rate_note"] = ""
+        if live:
+            S = _lys(live)
+            data["acceptance_by_year"] = [{
+                "year": x["year"], "status": x["status"], "detail": x["detail"], "bootcampers": x["bootcampers"],
+                "responses": x["responses"], "with_offer": x["with_offer"], "counted_bootcampers": x["counted_bootcampers"],
+                "rate": ("%.1f%%" % (100.0 * x["counted_offers"] / x["counted_bootcampers"])) if x["counted_bootcampers"] else None
+            } for x in S]
+            counted = [x for x in S if x["counted_bootcampers"] > 0]
+            total_sel = sum(x["bootcampers"] for x in S)
+            if not counted:
+                data["acceptance_rate"] = "TBD"
+                data["acceptance_rate_note"] = "%s bootcampers only - awaiting Survey 3" % _span(live)
+            else:
+                cb = sum(x["counted_bootcampers"] for x in counted)
+                co = sum(x["counted_offers"] for x in counted)
+                data["acceptance_rate"] = "%.1f%%" % (100.0 * co / cb)
+                yc = _span([x["year"] for x in counted])
+                if cb == total_sel:
+                    data["acceptance_rate_note"] = "%s bootcampers only - full cohort (%d of %d)" % (yc, cb, total_sel)
+                else:
+                    cl, pl = [], []
+                    for x in S:
+                        cl += x["counted_labels"]; pl += x["pending"]
+                    data["acceptance_rate_note"] = "%s bootcampers only - %d of %d bootcampers counted so far (%s); pending: %s" % (yc, cb, total_sel, ", ".join(cl), ", ".join(pl))
+        if hist:
+            H = _oby(hist)
+            data["historical_outcomes"] = H
+            if H and not live and set(hist) == set(cfg["historical"]) and H["bootcampers"]:
+                data["acceptance_rate"] = "%.1f%%" % (100.0 * H["with_offer"] / H["bootcampers"])
+                data["acceptance_rate_note"] = "Retro data: %d outcome responses from %d bootcampers (%s)" % (H["responses"], H["bootcampers"], _span(hist))
+        resp.set_data(_json.dumps(data))
+    except Exception:
+        pass
+    return resp
