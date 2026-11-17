@@ -8,8 +8,11 @@ from datetime import datetime
 
 # Cohort year being processed (set PA_YEAR before running)
 BOOTCAMP_YEAR = int(os.environ.get("PA_YEAR", "2026"))
-if "PA_YEAR" not in os.environ:
-    print("WARNING: PA_YEAR not set, using 2026")
+def require_year():
+    """Stop unless PA_YEAR is set. Scripts that write a cohort data call this first."""
+    if "PA_YEAR" not in os.environ:
+        raise SystemExit("Set PA_YEAR first, e.g. PA_YEAR=2027")
+    return BOOTCAMP_YEAR
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

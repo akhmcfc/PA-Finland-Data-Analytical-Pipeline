@@ -48,7 +48,7 @@ Python, Flask, SQLite, Typeform API, vanilla JavaScript, Chart.js 3.9, GitHub Pa
 
 ## Settings (environment variables)
 
-- `PA_YEAR`: the cohort year being processed. Sets the candidate-ID prefix and the input/output file names. Set it before every yearly import.
+- `PA_YEAR`: the cohort year being processed. Sets the candidate-ID prefix and the input/output file names. Set it before every yearly import: the setup, ID and load scripts stop if it is missing, and the ID script refuses to run twice for the same year.
 - `PA_DB`: path to the SQLite database (optional).
 - `TYPEFORM_API_TOKEN`: Typeform access token.
 - `ADMIN_PASSWORD`: password for the admin endpoints. If unset, a random one is generated, so admin routes stay locked.

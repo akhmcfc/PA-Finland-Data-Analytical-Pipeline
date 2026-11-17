@@ -1,4 +1,4 @@
-﻿"""
+"""
 Load Survey 1 (pre-bootcamp) data into pre_bootcamp_2026.
 Survey 1 was already completed before candidate IDs existed, so this
 maps the existing merged CSV columns directly -- no Typeform pull needed.
@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import pandas as pd
 import sqlite3
-from config.config import BOOTCAMPERS_FILE, DATABASE_FILE
+from config.config import BOOTCAMPERS_FILE, DATABASE_FILE, BOOTCAMP_YEAR, require_year
 
 DREAM_DESTINATIONS_COL = 'Missä unelmoit opiskelevasi? (Valitse kaikki sopivat vaihtoehdot) 🤩'
 DREAM_UNIVERSITIES_COL = 'Mitkä yliopistot ovat toivelistallasi? (Valitse kaikki sopivat vaihtoehdot) 🏛️'
@@ -33,7 +33,7 @@ def load_pre_bootcamp_data():
     for idx, row in df.iterrows():
         email = row['Email']
 
-        cursor.execute('SELECT candidate_id FROM candidate_mapping_2026 WHERE email = ?', (email,))
+        cursor.execute(f'SELECT candidate_id FROM candidate_mapping_{BOOTCAMP_YEAR} WHERE email = ?', (email,))
         result = cursor.fetchone()
 
         if not result:
@@ -47,7 +47,7 @@ def load_pre_bootcamp_data():
         target_destinations = row.get(DREAM_DESTINATIONS_COL, None)
         field_of_study = row.get(FIELD_OF_STUDY_COL, None)
 
-        cursor.execute('''
+        
             INSERT OR REPLACE INTO pre_bootcamp_2026
             (candidate_id, dream_universities, target_destinations, field_of_study, confidence_level)
             VALUES (?, ?, ?, ?, ?)

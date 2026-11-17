@@ -1,4 +1,4 @@
-﻿"""
+"""
 Generate unique candidate IDs for all 36 confirmed 2026 bootcampers.
 Inserts ID-to-identity mapping into candidate_mapping_2026 (private table).
 Saves a CSV backup of the mapping.
@@ -12,9 +12,9 @@ import pandas as pd
 import sqlite3
 import secrets
 import string
-from config.config import BOOTCAMPERS_FILE, DATABASE_FILE, DATA_DIR, CANDIDATE_ID_PREFIX
+from config.config import BOOTCAMPERS_FILE, DATABASE_FILE, DATA_DIR, CANDIDATE_ID_PREFIX, BOOTCAMP_YEAR, require_year
 
-OUTPUT_FILE = os.path.join(DATA_DIR, 'processed', '2026_candidate_ids.csv')
+OUTPUT_FILE = os.path.join(DATA_DIR, 'processed', f'{BOOTCAMP_YEAR}_candidate_ids.csv')
 
 def generate_id(existing_ids):
     chars = string.ascii_uppercase + string.digits
@@ -26,15 +26,19 @@ def generate_id(existing_ids):
 
 def generate_candidate_ids():
     print(f"\n{'='*70}")
-    print(f"GENERATING CANDIDATE IDs FOR 2026 BOOTCAMP")
+    print(f"GENERATING CANDIDATE IDs FOR {BOOTCAMP_YEAR} BOOTCAMP")
     print(f"{'='*70}\n")
 
+    require_year()
     df = pd.read_csv(BOOTCAMPERS_FILE, encoding='utf-8')
     df = df.dropna(how='all')
 
     conn = sqlite3.connect(DATABASE_FILE)
     cursor = conn.cursor()
 
+    already = cursor.execute(f"SELECT COUNT(*) FROM candidate_mapping_{BOOTCAMP_YEAR}").fetchone()[0]
+    if already:
+        sys.exit(f"candidate_mapping_{BOOTCAMP_YEAR} already has {already} rows. Re-running would give everyone new IDs and break links already sent. Stopping.")
     existing_ids = set()
     mapping_rows = []
 
@@ -46,8 +50,8 @@ def generate_candidate_ids():
         candidate_id = generate_id(existing_ids)
         existing_ids.add(candidate_id)
 
-        cursor.execute('''
-            INSERT OR REPLACE INTO candidate_mapping_2026
+        cursor.execute(f'''
+            INSERT OR REPLACE INTO candidate_mapping_{BOOTCAMP_YEAR}
             (candidate_id, email, first_name, last_name)
             VALUES (?, ?, ?, ?)
         ''', (candidate_id, email, first_name, last_name))
