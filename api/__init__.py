@@ -1,4 +1,4 @@
-﻿"""
+"""
 Flask API application factory
 """
 
@@ -12,7 +12,7 @@ def create_app():
     # Enable CORS for dashboard
     CORS(app, resources={
         r"/api/*": {
-            "origins": ["*"],
+            "origins": ["http://localhost:8000", "http://127.0.0.1:8000"],
             "methods": ["GET", "POST", "OPTIONS"],
             "allow_headers": ["Content-Type"]
         }

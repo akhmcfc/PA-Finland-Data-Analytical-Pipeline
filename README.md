@@ -45,3 +45,17 @@ You need your own SQLite database following the table naming above and your own 
 ## Stack
 
 Python, Flask, SQLite, Typeform API, vanilla JavaScript, Chart.js 3.9, GitHub Pages, Windows Task Scheduler.
+
+## Settings (environment variables)
+
+- `PA_YEAR`: the cohort year being processed. Sets the candidate-ID prefix and the input/output file names. Set it before every yearly import.
+- `PA_DB`: path to the SQLite database (optional).
+- `TYPEFORM_API_TOKEN`: Typeform access token.
+- `ADMIN_PASSWORD`: password for the admin endpoints. If unset, a random one is generated, so admin routes stay locked.
+- `PA_SMTP_HOST`, `PA_SMTP_PORT`, `PA_SMTP_USER`, `PA_SMTP_PASS`, `PA_FROM`: mailbox settings for survey emails.
+- `PA_REMIND_DAYS`, `PA_MAX_REMINDERS`: reminder spacing (default 7 days) and limit (default 2).
+- `PA_HOST`, `PA_DEBUG`: the API listens on 127.0.0.1 only unless `PA_HOST` is set; debug mode is off unless `PA_DEBUG=1`.
+
+## Security notes
+
+The API binds to localhost by default, allows cross-origin requests only from the local dashboard, and compares the admin password in constant time. The public site is static and contains aggregates only.

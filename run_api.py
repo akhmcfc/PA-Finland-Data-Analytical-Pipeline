@@ -1,4 +1,4 @@
-﻿"""
+"""
 run_api.py - Start the Flask API
 """
 
@@ -31,4 +31,4 @@ if __name__ == '__main__':
     print("  GET /api/2026/admin/health")
     print("\n" + "="*70 + "\n")
     
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=os.environ.get("PA_DEBUG") == "1", host=os.environ.get("PA_HOST", "127.0.0.1"), port=5000)

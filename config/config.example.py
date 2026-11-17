@@ -22,7 +22,7 @@ RAW_DATA_FILE = os.path.join(DATA_DIR, 'raw', f'PA_Fin_{BOOTCAMP_YEAR}_Bootcamp_
 BOOTCAMPERS_FILE = os.path.join(DATA_DIR, 'processed', f'PA_{BOOTCAMP_YEAR}_bootcampers_final.csv')
 DATABASE_FILE = os.environ.get("PA_DB", os.path.join(DATABASE_DIR, "project_access_2026.db"))
 
-# 2026 Configuration
+# Cohort configuration
 CANDIDATE_ID_PREFIX = f"PA-{BOOTCAMP_YEAR}"
 
 # Typeform IDs (fill in after creating forms)
@@ -37,5 +37,3 @@ LOG_FILE = os.path.join(BASE_DIR, 'logs', f'pipeline_{datetime.now().strftime("%
 TYPEFORM_API_TOKEN = os.environ.get("TYPEFORM_API_TOKEN", "")
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD") or __import__("secrets").token_hex(16)
 
-# Total applicants to the 2026 bootcamp (deduplicated, excluding test entries)
-APPLICANTS_TOTAL_2026 = 224

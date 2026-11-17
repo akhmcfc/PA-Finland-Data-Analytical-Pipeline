@@ -1,8 +1,9 @@
-﻿"""
+"""
 Security utilities for admin endpoints
 """
 
 import os
+import hmac
 from functools import wraps
 from flask import request, jsonify
 from config.config import ADMIN_PASSWORD
@@ -17,7 +18,7 @@ def require_admin_password(f):
         if not password:
             return jsonify({"error": "Admin password required"}), 401
         
-        if password != ADMIN_PASSWORD:
+        if not hmac.compare_digest(password.encode(), ADMIN_PASSWORD.encode()):
             return jsonify({"error": "Invalid admin password"}), 401
         
         return f(*args, **kwargs)
